@@ -1,0 +1,11 @@
+# OS files
+.DS_Store
+Thumbs.db
+
+# Project-specific
+.gemini/
+.idea/
+.vscode/
+
+# Ignore PDF files if they are large and meant to be examples
+# *.pdf

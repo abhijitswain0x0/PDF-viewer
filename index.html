@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Lumina — PDF Viewer</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="bg">
+  <div class="orb o1"></div><div class="orb o2"></div>
+  <div class="orb o3"></div><div class="orb o4"></div>
+</div>
+<div class="grid"></div>
+<div class="backdrop" id="backdrop" onclick="closeSidebar()"></div>
+
+<div class="app">
+
+  <!-- HEADER -->
+  <header class="glass">
+    <button class="menu-btn" id="menu-btn" onclick="toggleSidebar()">☰</button>
+    <div class="logo"><div class="dot"></div>Lumina</div>
+    <div class="h-sep"></div>
+    <div class="h-sub">PDF Viewer</div>
+    <div class="h-file" id="h-file"></div>
+    <!-- JS-powered save, no href navigation -->
+    <button class="dl-btn" id="dl-btn" onclick="saveFile()">↓ Save</button>
+  </header>
+
+  <div class="content">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar glass" id="sidebar">
+
+      <div class="glass">
+        <div class="card-hdr">Document</div>
+        <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-in').click()">
+          <div class="upload-icon">📄</div>
+          <div class="upload-title">Open PDF</div>
+          <div class="upload-sub">Drag &amp; drop here<br>or tap to browse</div>
+          <button class="upload-btn" onclick="event.stopPropagation();document.getElementById('file-in').click()">Choose File</button>
+          <input type="file" id="file-in" accept=".pdf">
+        </div>
+        <div class="file-info" id="file-info">
+          <div class="file-name" id="f-name"></div>
+          <div class="file-meta" id="f-meta"></div>
+          <div class="prog-wrap"><div class="prog-bar" id="prog"></div></div>
+        </div>
+      </div>
+
+      <div class="glass" id="doc-info" style="display:none">
+        <div class="card-hdr">Information</div>
+        <div class="info-grid">
+          <div class="info-row"><span class="info-lbl">Total Pages</span><span class="info-val" id="i-pages">—</span></div>
+          <div class="info-row"><span class="info-lbl">Current</span><span class="info-val" id="i-cur">—</span></div>
+          <div class="info-row"><span class="info-lbl">Zoom</span><span class="info-val" id="i-zoom">—</span></div>
+        </div>
+      </div>
+
+      <div class="glass thumbs-wrap" id="thumbs-card" style="display:none">
+        <div class="card-hdr">Pages</div>
+        <div class="thumbs" id="thumbs"></div>
+      </div>
+
+    </div>
+
+    <!-- VIEWER -->
+    <div class="viewer" id="viewer">
+
+      <!-- Desktop toolbar -->
+      <div class="glass toolbar">
+        <div class="tg">
+          <button class="tb" id="d-first"  onclick="goTo(1)"          disabled title="First">⟨⟨</button>
+          <button class="tb" id="d-prev"   onclick="turn(-1)"         disabled title="Prev">‹</button>
+          <input  class="pg-in" id="d-pg"  type="number" min="1" value="1" disabled>
+          <span   class="pg-tot" id="d-tot">/ —</span>
+          <button class="tb" id="d-next"   onclick="turn(1)"          disabled title="Next">›</button>
+          <button class="tb" id="d-last"   onclick="goToLast()"       disabled title="Last">⟩⟩</button>
+        </div>
+        <div class="tg">
+          <button class="tb" id="d-zout"   onclick="zoom(-0.15)"      disabled title="Zoom out">−</button>
+          <span   class="zm-lbl" id="d-zm">—</span>
+          <button class="tb" id="d-zin"    onclick="zoom(0.15)"       disabled title="Zoom in">+</button>
+          <button class="tb" id="d-fit"    onclick="fitW()"           disabled title="Fit width">⊡</button>
+        </div>
+        <div class="tg">
+          <button class="tb" id="d-rot"    onclick="rotatePdf()"      disabled title="Rotate">↻</button>
+        </div>
+        <!-- search -->
+        <div class="tg" style="flex:1;min-width:120px;border-right:none;padding-right:0">
+          <div class="search-wrap">
+            <span class="s-icon">⌕</span>
+            <input class="s-in" id="d-s" type="text" placeholder="Search…" spellcheck="false">
+            <span class="s-cnt" id="d-cnt"></span>
+            <button class="tb s-btn" id="d-sp" title="Prev">↑</button>
+            <button class="tb s-btn" id="d-sn" title="Next">↓</button>
+            <button class="tb s-btn" id="d-sx" title="Clear">✕</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Canvas stage -->
+      <div class="stage glass">
+        <div class="loading" id="loading">
+          <div class="spinner"></div>
+          <div class="loading-txt">Rendering…</div>
+        </div>
+        <div class="scroll-area" id="scroll-area">
+          <div class="empty" id="empty">
+            <div class="empty-icon">
+              <svg viewBox="0 0 80 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="8" y="4" width="52" height="68" rx="6" stroke="white" stroke-width="1.5"/>
+                <rect x="16" y="18" width="36" height="2" rx="1" fill="white"/>
+                <rect x="16" y="26" width="28" height="2" rx="1" fill="white"/>
+                <rect x="16" y="34" width="32" height="2" rx="1" fill="white"/>
+                <rect x="16" y="42" width="20" height="2" rx="1" fill="white"/>
+                <path d="M44 60 L60 76 L72 64 L56 48 Z" stroke="#c8a87a" stroke-width="1.5" fill="none"/>
+                <circle cx="54" cy="46" r="10" stroke="#c8a87a" stroke-width="1.5" fill="none"/>
+              </svg>
+            </div>
+            <div class="empty-title">No document open</div>
+            <div class="empty-sub">Tap ☰ to open a PDF<br>or drag &amp; drop a file here</div>
+          </div>
+          <div id="pages"></div>
+        </div>
+      </div>
+
+    </div><!-- /viewer -->
+  </div><!-- /content -->
+</div><!-- /app -->
+
+<!-- Mobile nav -->
+<div class="mobile-nav" id="mobile-nav">
+  <div class="mnr">
+    <button class="tb" id="m-first"  onclick="goTo(1)"       disabled>⟨⟨</button>
+    <button class="tb" id="m-prev"   onclick="turn(-1)"      disabled>‹</button>
+    <input  class="pg-in" id="m-pg"  type="number" min="1" value="1" disabled>
+    <span   class="pg-tot" id="m-tot">/ —</span>
+    <button class="tb" id="m-next"   onclick="turn(1)"       disabled>›</button>
+    <button class="tb" id="m-last"   onclick="goToLast()"    disabled>⟩⟩</button>
+  </div>
+  <div class="mnr">
+    <button class="tb" id="m-zout"   onclick="zoom(-0.15)"   disabled>−</button>
+    <span   class="zm-lbl" id="m-zm">—</span>
+    <button class="tb" id="m-zin"    onclick="zoom(0.15)"    disabled>+</button>
+    <button class="tb" id="m-fit"    onclick="fitW()"        disabled>⊡</button>
+    <button class="tb" id="m-rot"    onclick="rotatePdf()"   disabled>↻</button>
+    <button class="tb"               onclick="document.getElementById('file-in').click()" title="Open">📂</button>
+  </div>
+  <div class="mnr" style="justify-content:stretch">
+    <div class="search-wrap" style="flex:1">
+      <span class="s-icon">⌕</span>
+      <input class="s-in" id="m-s" type="text" placeholder="Search…" spellcheck="false">
+      <span class="s-cnt" id="m-cnt"></span>
+      <button class="tb s-btn" id="m-sp">↑</button>
+      <button class="tb s-btn" id="m-sn">↓</button>
+      <button class="tb s-btn" id="m-sx">✕</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="script.js"></script>
+</body>
+</html>
